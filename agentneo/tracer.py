@@ -107,8 +107,8 @@ class Tracer:
         self.tools: Dict[str, Tool] = {}
         self.auto_instrument_llm = auto_instrument_llm
 
-        if self.auto_instrument_llm:
-            self.instrument_llm_calls()
+        # if self.auto_instrument_llm:
+        self.instrument_llm_calls()
 
         self.trace_id = None
         self.trace = None
@@ -628,40 +628,11 @@ class Tracer:
         return decorator
 
     async def _trace_llm_call_async(self, func, name, *args, **kwargs):
-        start_time = datetime.now()
-        start_memory = psutil.Process().memory_info().rss
-
         try:
             if asyncio.iscoroutinefunction(func):
                 result = await func(*args, **kwargs)
             else:
                 result = await asyncio.to_thread(func, *args, **kwargs)
-
-            end_time = datetime.now()
-            end_memory = psutil.Process().memory_info().rss
-            memory_used = end_memory - start_memory
-
-            sanitized_args = self._sanitize_api_keys(args)
-            sanitized_kwargs = self._sanitize_api_keys(kwargs)
-            if not self.auto_instrument_llm:
-                self.process_llm_result(
-                    result,
-                    name,
-                    self._extract_model_name(sanitized_kwargs),
-                    self._extract_input(sanitized_args, sanitized_kwargs),
-                    start_time,
-                    end_time,
-                    memory_used,
-                )
-            self.process_llm_result(
-                result,
-                name,
-                self._extract_model_name(sanitized_kwargs),
-                self._extract_input(sanitized_args, sanitized_kwargs),
-                start_time,
-                end_time,
-                memory_used,
-            )
 
             return result
         except Exception as e:
@@ -669,29 +640,8 @@ class Tracer:
             raise
 
     def _trace_llm_call_sync(self, func, name, *args, **kwargs):
-        # Synchronous version of the method
-        start_time = datetime.now()
-        start_memory = psutil.Process().memory_info().rss
-
         try:
             result = func(*args, **kwargs)
-
-            end_time = datetime.now()
-            end_memory = psutil.Process().memory_info().rss
-            memory_used = end_memory - start_memory
-
-            sanitized_args = self._sanitize_api_keys(args)
-            sanitized_kwargs = self._sanitize_api_keys(kwargs)
-            if not self.auto_instrument_llm:
-                self.process_llm_result(
-                    result,
-                    name,
-                    self._extract_model_name(sanitized_kwargs),
-                    self._extract_input(sanitized_args, sanitized_kwargs),
-                    start_time,
-                    end_time,
-                    memory_used,
-                )
 
             return result
         except Exception as e:
